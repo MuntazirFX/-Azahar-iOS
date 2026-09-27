@@ -1,0 +1,53 @@
+name: Fetch official Azahar iOS ARM64 libretro core
+
+on:
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - "**.md"
+      - ".gitignore"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Azahar release tag
+        required: true
+        default: "2126.1.2"
+
+concurrency:
+  group: fetch-ios-libretro-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Resolve tag
+        id: ver
+        run: |
+          TAG="${{ github.event.inputs.tag }}"
+          if [ -z "$TAG" ]; then TAG="2126.1.2"; fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Using Azahar tag $TAG"
+
+      - name: Download official iOS ARM64 core
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.ver.outputs.tag }}"
+          NAME="azahar-libretro-ios-arm64-${TAG}.zip"
+          URL="https://github.com/azahar-emu/azahar/releases/download/${TAG}/${NAME}"
+          echo "GET $URL"
+          curl -fL --retry 3 -o "$NAME" "$URL"
+          mkdir -p dist
+          unzip -o "$NAME" -d dist
+          ls -lah dist "$NAME"
+          echo "$TAG" > dist/AZAHAR_TAG.txt
+          cp "$NAME" dist/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: azahar-libretro-ios-arm64
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,16 @@
+.DS_Store
+build/
+DerivedData/
+*.xcodeproj/
+*.xcworkspace/
+*.ipa
+*.dSYM
+aes_keys.txt
+*.3ds
+*.cci
+*.cia
+*.cxi
+*.app
+nand/
+sdmc/
+sysdata/
