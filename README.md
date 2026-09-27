@@ -1,54 +1,34 @@
 # Azahar iOS (ARM64)
 
-Unofficial **iOS ARM64 build project** for [Azahar](https://github.com/azahar-emu/azahar) (`azahar-emu/azahar`), the Citra-based 3DS emulator.
+Unofficial **iOS ARM64 build project** for [Azahar](https://github.com/azahar-emu/azahar).
 
-This repository is **not** an official Azahar product. Azahar itself does not ship a standalone iOS app.
+Frontend layout follows **[Santa-ios](https://github.com/MuntazirFX/Santa-ios)**: `project.yml` + XcodeGen + unsigned `xcodebuild` on `macos-latest`.
 
-## What exists today (Sep 2026)
+This is **not** official Azahar. The emulator core is not linked yet. The app target is a Metal/UIKit shell so the same IPA pipeline as Santa-ios can run.
 
-| Thing | Status |
+## Santa-ios pattern (used here)
+
+| File | Same idea as Santa-ios |
 | --- | --- |
-| Official standalone Azahar `.ipa` | **Does not exist.** iOS frontend was dropped ([azahar#295](https://github.com/azahar-emu/azahar/issues/295)). FAQ: iOS support is not planned. |
-| Official Azahar **libretro** core for iOS ARM64 | **Yes.** Latest stable: `2126.1.2` |
-| This repo | Empty until this bootstrap. No Xcode frontend yet. |
-
-Official iOS core download:
-
-https://github.com/azahar-emu/azahar/releases/download/2126.1.2/azahar-libretro-ios-arm64-2126.1.2.zip
-
-Play path that actually works today:
-
-1. Install [RetroArch](https://www.retroarch.com/?page=platforms) for iOS (sideload or App Store variant).
-2. Drop the Azahar libretro core into RetroArch.
-3. Use your own dumped titles + `aes_keys.txt` / sysdata from a 3DS you own.
-
-JIT is forced off on App Store iOS. Performance is much better on recent iPhones; older devices often sit under 100%.
-
-## What this repo will not pretend to be
-
-A signed, playable, standalone Azahar IPA cannot be produced from Linux CI without:
-
-- an iOS frontend (UIKit/SwiftUI + Metal, replacing the dropped Citra iOS / Qt path)
-- Xcode on a macOS runner (this project uses GitHub Actions for the official core only)
-- your Apple signing identity for device install (AltStore / SideStore / paid cert)
-
-Porting the full Azahar core + renderer + input + FS sandbox to a native iOS app is a multi-month job, not a one-shot `xcodebuild`.
-
-If you want 3DS on iPhone *now*, use Folium (App Store, Azahar-based core) or RetroArch + the official Azahar iOS core above.
+| `project.yml` | XcodeGen iOS app, `CODE_SIGNING_ALLOWED: NO`, Metal + UIKit |
+| `ios/AppDelegate.*` `ios/MetalView.*` | ObjC++ / MetalKit view |
+| `.github/workflows/ios-build.yml` | `macos-latest` → xcodegen → xcodebuild → zip `AzaharEngine.ipa` |
 
 ## CI
 
-`.github/workflows/fetch-ios-libretro.yml`
+1. **iOS Build on macOS Runner** — unsigned IPA artifact `AzaharEngine-unsigned-ipa`
+2. **Fetch official Azahar iOS ARM64 libretro core** — official `2126.1.2` core zip
 
-- Manual (`workflow_dispatch`) or on push to `main`
-- Downloads the official `azahar-libretro-ios-arm64` zip for tag `2126.1.2`
-- Uploads it as a workflow artifact named `azahar-libretro-ios-arm64`
+Run: Actions → iOS Build on macOS Runner → Run workflow.
 
-This does **not** compile Azahar. It only mirrors the official iOS core so this repo has a repeatable ARM64 artifact.
+Sideload the unsigned IPA with AltStore / SideStore / your team cert. It will launch a blank Metal view until the Azahar core is ported in.
+
+## Official playable iOS path today
+
+https://github.com/azahar-emu/azahar/releases/download/2126.1.2/azahar-libretro-ios-arm64-2126.1.2.zip
+
+Use that core inside RetroArch iOS. Standalone official IPA does not exist.
 
 ## License
 
-Azahar is GPL-2.0. See `https://github.com/azahar-emu/azahar/blob/master/license.txt`.
-Any future frontend here that links the Azahar core must stay GPL-compatible.
-
-Nintendo trademarks belong to Nintendo. Dump games you own.
+Azahar is GPL-2.0. Nintendo marks belong to Nintendo. No ROMs or keys in this repo.

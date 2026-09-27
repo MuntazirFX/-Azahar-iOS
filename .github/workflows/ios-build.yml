@@ -1,0 +1,104 @@
+name: iOS Build on macOS Runner
+
+on:
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - "**.md"
+      - ".gitignore"
+      - "docs/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Generate Build Info
+        run: |
+          set -e
+          BUILD_SHA="${GITHUB_SHA:0:7}"
+          BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          {
+            echo "#pragma once"
+            echo "#define AZAHAR_BUILD_SHA \"${BUILD_SHA}\""
+            echo "#define AZAHAR_BUILD_TIME \"${BUILD_TIME}\""
+          } > ios/BuildInfo.h
+
+      - name: Metal Toolchain
+        continue-on-error: true
+        run: xcodebuild -downloadComponent MetalToolchain
+
+      - name: Install XcodeGen
+        run: |
+          set -e
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Generate Xcode Project
+        run: |
+          set -e
+          rm -rf AzaharEngine.xcodeproj
+          xcodegen generate
+          test -d AzaharEngine.xcodeproj
+
+      - name: Build iOS App
+        run: |
+          set -eo pipefail
+          rm -rf build
+          xcodebuild \
+            -project AzaharEngine.xcodeproj \
+            -scheme AzaharEngine \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            ONLY_ACTIVE_ARCH=NO 2>&1 | tee xcodebuild.log
+
+      - name: Show Build Errors
+        if: failure()
+        run: |
+          grep -E "error:|fatal error:|Undefined symbols|ld: " xcodebuild.log | head -60 || true
+          tail -40 xcodebuild.log || true
+
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Package unsigned IPA
+        run: |
+          set -e
+          APP_PATH="$(find build -type d -name 'AzaharEngine.app' | head -n 1)"
+          test -n "$APP_PATH"
+          test -f "$APP_PATH/AzaharEngine"
+          file "$APP_PATH/AzaharEngine"
+          rm -rf Payload AzaharEngine.ipa
+          mkdir Payload
+          cp -R "$APP_PATH" Payload/
+          zip -r AzaharEngine.ipa Payload
+          ls -lh AzaharEngine.ipa
+          echo "$APP_PATH" > app_path.txt
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: AzaharEngine-unsigned-ipa
+          path: AzaharEngine.ipa
+          if-no-files-found: error
+          retention-days: 30

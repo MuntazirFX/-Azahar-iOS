@@ -1,0 +1,28 @@
+name: AzaharEngine
+options:
+  bundleIdPrefix: com.muntazirfx
+targets:
+  AzaharEngine:
+    type: application
+    platform: iOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: ios
+        excludes:
+          - "Info.plist"
+    settings:
+      INFOPLIST_FILE: ios/Info.plist
+      PRODUCT_BUNDLE_IDENTIFIER: com.muntazirfx.azahar
+      PRODUCT_NAME: AzaharEngine
+      CODE_SIGNING_ALLOWED: NO
+      CODE_SIGNING_REQUIRED: NO
+      CLANG_ENABLE_OBJC_ARC: YES
+      CLANG_CXX_LANGUAGE_STANDARD: "c++17"
+      CLANG_CXX_LIBRARY: "libc++"
+      MTL_FAST_MATH: "YES"
+    dependencies:
+      - sdk: UIKit.framework
+      - sdk: Metal.framework
+      - sdk: MetalKit.framework
+      - sdk: QuartzCore.framework
+      - sdk: Foundation.framework
